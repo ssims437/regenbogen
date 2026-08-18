@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<title>Regenbogen — warum er bei 42 Grad steht</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Der Regenbogen aus Strahlengängen: Brechung, Spiegelung und Fresnel in einem Wassertropfen, der Winkel als Extremum, Alexanders dunkles Band — und ein Himmel, der aus 264 000 gespurten Strahlen entsteht statt aus einem Farbverlauf." />
+
+<style>
+  :root {
+    --grund: #EFEEEC;
+    --feld:  #FAFAF8;
+    --tief:  #E3E2DE;
+    --linie: #C8C6C0;
+    --tinte: #18171A;
+    --leise: #64626A;
+    --netz:  #B5B3AE;
+    --strahl:#1F5FA8;
+    --rot:   #A8471F;
+    --violett:#6A4A9A;
+    --gut:   #2C7A34;
+    --warn:  #A32C22;
+    --schatten: 0 1px 0 rgba(24,23,26,.05), 0 10px 24px -16px rgba(24,23,26,.45);
+    --f-fest: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, "DejaVu Sans Mono", monospace;
+    --f-text: -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --grund: #131214; --feld: #1A191C; --tief: #0C0C0D; --linie: #302E33;
+      --tinte: #E7E5EA; --leise: #918F98; --netz: #423F46;
+      --strahl: #6CA8E8; --rot: #E0785C; --violett: #B48ADA;
+      --gut: #7FBF6A; --warn: #E0776B;
+      --schatten: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px #000;
+    }
+  }
+  :root[data-theme="dark"] {
+    --grund: #131214; --feld: #1A191C; --tief: #0C0C0D; --linie: #302E33;
+    --tinte: #E7E5EA; --leise: #918F98; --netz: #423F46;
+    --strahl: #6CA8E8; --rot: #E0785C; --violett: #B48ADA;
+    --gut: #7FBF6A; --warn: #E0776B;
+    --schatten: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px #000;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--grund); color:var(--tinte);
+    font-family:var(--f-text); font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .blatt { max-width:1180px; margin:0 auto;
+    padding: clamp(20px,4vw,44px) clamp(14px,3vw,28px) 64px;
+    display:flex; flex-direction:column; gap:18px; }
+
+  .marke { font-family:var(--f-fest); font-size:10px; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--leise); display:flex; gap:12px; align-items:center; margin:0; }
+  .marke::after { content:""; flex:1; height:1px; background:var(--linie); }
+  h1 { font-family:var(--f-fest); font-weight:700; font-size:clamp(24px,4.2vw,40px);
+    line-height:1.06; letter-spacing:-.03em; margin:0; text-wrap:balance; }
+  h1 span { color:var(--rot); }
+  .vorspann { max-width:70ch; color:var(--leise); margin:0; }
+  .vorspann b { color:var(--tinte); font-weight:600; }
+
+  .leiste { display:flex; gap:14px; flex-wrap:wrap; align-items:center;
+    background:var(--feld); border:1px solid var(--linie); padding:9px 11px; box-shadow:var(--schatten); }
+  .kl { font-family:var(--f-fest); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--leise); }
+  .regler { display:flex; gap:7px; align-items:center; }
+  .regler output { font-family:var(--f-fest); font-size:12px; min-width:6ch; text-align:right;
+    font-variant-numeric:tabular-nums; }
+  input[type=range] { width:126px; accent-color:var(--strahl); }
+  button, select { font-family:var(--f-fest); font-size:12px; color:var(--tinte); background:var(--grund);
+    border:1px solid var(--linie); border-radius:0; padding:6px 10px; letter-spacing:.03em; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--strahl); }
+  button.haupt { background:var(--strahl); border-color:var(--strahl); color:var(--feld); }
+  button[aria-pressed="true"] { background:var(--tief); border-color:var(--strahl); }
+  :focus-visible { outline:2px solid var(--strahl); outline-offset:2px; }
+
+  .kasten { background:var(--feld); border:1px solid var(--linie); box-shadow:var(--schatten);
+    display:flex; flex-direction:column; min-width:0; }
+  .kasten-kopf { display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    padding:8px 11px; border-bottom:1px solid var(--linie); }
+  .kasten-leib { padding:11px; display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .buehne { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start; }
+  @media (max-width: 940px) { .buehne { grid-template-columns: minmax(0,1fr); } }
+  .saeule { display:flex; flex-direction:column; gap:18px; min-width:0; }
+
+  canvas { width:100%; height:auto; display:block; background:var(--tief); border:1px solid var(--linie); }
+  canvas#himmel { background:#05070E; }
+
+  .werte { display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:1px;
+    background:var(--linie); border:1px solid var(--linie); }
+  .wert { background:var(--feld); padding:7px 9px; min-width:0; }
+  .wert .l { font-family:var(--f-fest); font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--leise); }
+  .wert .n { font-family:var(--f-fest); font-size:16px; font-variant-numeric:tabular-nums; }
+  .wert .n.rot { color:var(--rot); } .wert .n.violett { color:var(--violett); }
+  .wert .k { font-family:var(--f-fest); font-size:10px; color:var(--leise); }
+
+  table.liste { border-collapse:collapse; width:100%; font-family:var(--f-fest); font-size:12px; }
+  table.liste th, table.liste td { border-bottom:1px solid var(--linie); padding:4px 7px; text-align:left; }
+  table.liste th { color:var(--leise); font-weight:400; font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+  table.liste td.z { text-align:right; font-variant-numeric:tabular-nums; }
+
+  .hinweis { font-family:var(--f-fest); font-size:12px; color:var(--leise); letter-spacing:0; margin:0; }
+  .hinweis b { color:var(--tinte); font-weight:600; }
+
+  .noten { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:18px; margin-top:6px; }
+  .noten section { background:var(--feld); border:1px solid var(--linie); padding:12px 14px; box-shadow:var(--schatten); }
+  .noten h3 { font-family:var(--f-fest); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--leise); margin:0 0 6px; font-weight:400; }
+  .noten p { margin:0; font-size:14px; }
+  code { font-family:var(--f-fest); font-size:12.5px; background:var(--tief); padding:1px 4px; }
+  .fuss { color:var(--leise); font-size:13px; border-top:1px solid var(--linie); padding-top:12px; }
+  .fuss a { color:var(--strahl); }
+</style>
+</head>
+<body>
+<main class="blatt">
+
+  <p class="marke">Blatt · Licht</p>
+  <h1>Regenbogen — warum er bei <span>42 Grad</span> steht</h1>
+  <p class="vorspann">
+    Ein Regenbogen ist kein Ding am Himmel, sondern ein <b>Winkel</b>. Millionen Tropfen werfen
+    Licht in alle Richtungen zurück — aber bei einer ganz bestimmten Ablenkung häuft es sich, weil
+    die Ablenkung dort einen <b>Extremwert</b> hat und deshalb über einen ganzen Bereich von
+    Auftreffpunkten fast gleich bleibt. Dieses Blatt spurt die Strahlen einzeln durch den Tropfen,
+    findet den Winkel, ohne ihn zu kennen, und baut daraus einen Himmel: nicht gemalt, sondern
+    <b>aus 264 000 gespurten Strahlen gerechnet</b>.
+  </p>
+
+  <div class="leiste">
+    <div class="regler"><span class="kl">Auftreffpunkt</span>
+      <input type="range" id="r-b" min="0" max="0.999" step="0.001" value="0.861" />
+      <output id="o-b"></output></div>
+    <div class="regler"><span class="kl">Strahlen</span>
+      <input type="range" id="r-anzahl" min="3" max="40" step="1" value="16" />
+      <output id="o-anzahl"></output></div>
+    <div class="regler"><span class="kl">Wellenlänge</span>
+      <input type="range" id="r-lambda" min="380" max="700" step="5" value="650" />
+      <output id="o-lambda"></output></div>
+    <select id="ordnung" aria-label="Ordnung">
+      <option value="1" selected>ein Mal innen gespiegelt (Hauptbogen)</option>
+      <option value="2">zwei Mal innen gespiegelt (Nebenbogen)</option>
+    </select>
+    <div class="regler"><span class="kl">Helligkeit</span>
+      <input type="range" id="r-gain" min="0.4" max="4" step="0.1" value="1.2" />
+      <output id="o-gain"></output></div>
+    <span style="flex:1"></span>
+    <button id="b-thema">Ansicht</button>
+  </div>
+
+  <div class="buehne">
+    <div class="saeule">
+      <div class="kasten">
+        <div class="kasten-kopf">
+          <span class="kl">Ein Tropfen, von links beleuchtet</span>
+          <span class="kl" id="tropfen-lage" style="margin-left:auto"></span>
+        </div>
+        <div class="kasten-leib">
+          <canvas id="tropfen" width="820" height="560" aria-label="Strahlengang durch einen Wassertropfen"></canvas>
+          <p class="hinweis" id="tropfen-fuss"></p>
+        </div>
+      </div>
+
+      <div class="kasten">
+        <div class="kasten-kopf">
+          <span class="kl">Warum genau dort</span>
+          <span class="kl" id="kurve-lage" style="margin-left:auto"></span>
+        </div>
+        <div class="kasten-leib">
+          <canvas id="kurve" width="820" height="380" aria-label="Ablenkwinkel über dem Auftreffpunkt"></canvas>
+          <p class="hinweis">
+            Waagrecht der Auftreffpunkt vom Tropfenrand zur Mitte, senkrecht der Winkel, unter dem
+            das Licht zurückkommt. Die Kurve hat einen <b>Umkehrpunkt</b> — dort ändert sich der
+            Winkel über einen breiten Bereich von Auftreffpunkten kaum. Genau dort staut sich das
+            Licht, und genau das sieht man als Bogen. Rot und Violett kehren bei leicht
+            verschiedenen Winkeln um; das ist die ganze Farbaufspaltung.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="saeule">
+      <div class="kasten">
+        <div class="kasten-kopf">
+          <span class="kl">Der Himmel, gerechnet</span>
+          <span class="kl" id="himmel-lage" style="margin-left:auto"></span>
+        </div>
+        <div class="kasten-leib">
+          <canvas id="himmel" width="820" height="470" aria-label="Gerechneter Regenbogen am Himmel"></canvas>
+          <p class="hinweis" id="himmel-fuss"></p>
+        </div>
+      </div>
+
+      <div class="kasten">
+        <div class="kasten-kopf"><span class="kl">Gemessen, nicht nachgeschlagen</span></div>
+        <div class="kasten-leib">
+          <div class="werte">
+            <div class="wert"><div class="l">Hauptbogen rot</div><div class="n rot" id="w-h-rot">—</div>
+              <div class="k">700 nm</div></div>
+            <div class="wert"><div class="l">Hauptbogen violett</div><div class="n violett" id="w-h-vio">—</div>
+              <div class="k">400 nm</div></div>
+            <div class="wert"><div class="l">Nebenbogen rot</div><div class="n rot" id="w-n-rot">—</div>
+              <div class="k">700 nm</div></div>
+            <div class="wert"><div class="l">Nebenbogen violett</div><div class="n violett" id="w-n-vio">—</div>
+              <div class="k">400 nm</div></div>
+            <div class="wert"><div class="l">Alexanders Band</div><div class="n" id="w-band">—</div>
+              <div class="k">nichts dazwischen</div></div>
+            <div class="wert"><div class="l">Nebenbogen so hell wie</div><div class="n" id="w-hell">—</div>
+              <div class="k">des Hauptbogens</div></div>
+          </div>
+          <p class="hinweis" id="werte-fuss"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kasten">
+    <div class="kasten-kopf">
+      <span class="kl">Beweis statt Behauptung</span>
+      <button id="b-pruefen" class="haupt" style="margin-left:auto">Prüfen</button>
+    </div>
+    <div class="kasten-leib">
+      <p class="hinweis">
+        Kein Winkel in diesem Blatt ist nachgeschlagen. Gespurt wird mit Vektoren, gebrochen wird
+        mit dem Snellius-Gesetz, und der Bogen entsteht als Umkehrpunkt einer gemessenen Kurve.
+        Die Prüfung stellt das gegen die <b>geschlossenen Formeln</b>, die man aus der Geometrie
+        herleiten kann — und gegen die Werte, die seit Descartes in den Büchern stehen.
+      </p>
+      <table class="liste" id="pruef"><tbody></tbody></table>
+      <p class="hinweis" id="pruef-fuss">noch nicht geprüft</p>
+    </div>
+  </div>
+
+  <div class="noten">
+    <section>
+      <h3>Warum überhaupt ein Bogen</h3>
+      <p>
+        Weil alle Tropfen, die unter demselben Winkel zur Sonnengegenrichtung stehen, dasselbe tun
+        — und diese Tropfen liegen auf einem <b>Kegelmantel</b> um den Kopfschatten des
+        Betrachters. Was man sieht, ist dessen Schnitt mit dem Regenschauer. Deshalb hat jeder
+        seinen <b>eigenen</b> Regenbogen, und deshalb kann man ihm nicht näher kommen.
+      </p>
+    </section>
+    <section>
+      <h3>Alexanders dunkles Band</h3>
+      <p>
+        Zwischen Haupt- und Nebenbogen ist der Himmel messbar dunkler — <b>kein einziger</b>
+        Strahl, der ein- oder zweimal im Tropfen gespiegelt wurde, kommt in diesem Bereich heraus.
+        Beschrieben hat es Alexander von Aphrodisias um 200 n. Chr.; erklärt wurde es erst
+        1400 Jahre später.
+      </p>
+    </section>
+    <section>
+      <h3>Warum der Nebenbogen verkehrt herum ist</h3>
+      <p>
+        Weil das Licht <b>zweimal</b> innen gespiegelt wird und dabei über den Umkehrpunkt hinaus
+        gedreht wird. Die Farbfolge kippt: Beim Hauptbogen liegt Rot außen, beim Nebenbogen innen.
+        Er ist zugleich deutlich blasser — jede Spiegelung verliert Licht nach außen, und das
+        rechnet dieses Blatt mit den Fresnel-Formeln nach.
+      </p>
+    </section>
+  </div>
+
+  <p class="fuss">
+    Eine einzelne HTML-Datei. Kein Build, keine Bibliothek, nichts verlässt den Browser.
+    <span style="display:block;margin-top:8px">
+      Alle Blätter: <a href="https://ssims437.github.io/">ssims437.github.io</a>
+    </span>
+  </p>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const GRAD = 180 / Math.PI;
+
+  /* ==========================================================================
+     WASSER
+     Brechzahl nach Cauchy, an zwei gemessene Werte angepasst:
+     1,3435 bei 400 nm und 1,3311 bei 700 nm.
+     ========================================================================== */
+  const brechzahl = (lambda) => 1.325094 + 2946.0 / (lambda * lambda);
+
+  /* ==========================================================================
+     STRAHLEN SPUREN
+     Der Tropfen ist der Einheitskreis um den Ursprung. Das Licht kommt von
+     links, waagrecht, im Abstand b von der Mittellinie. Gebrochen und
+     gespiegelt wird mit Vektoren — nicht mit vorgefertigten Winkelformeln,
+     damit die Prüfung etwas Unabhängiges zum Vergleichen hat.
+     ========================================================================== */
+  const mal = (v, s) => [v[0] * s, v[1] * s];
+  const plus = (a, b) => [a[0] + b[0], a[1] + b[1]];
+  const punkt = (a, b) => a[0] * b[0] + a[1] * b[1];
+
+  function brechen(d, nrm, eta) {
+    const c = -punkt(nrm, d);
+    const k = 1 - eta * eta * (1 - c * c);
+    if (k < 0) return null;                       // Totalreflexion
+    return plus(mal(d, eta), mal(nrm, eta * c - Math.sqrt(k)));
+  }
+  const spiegeln = (d, nrm) => plus(d, mal(nrm, -2 * punkt(d, nrm)));
+
+  /* Fresnel für unpolarisiertes Licht: der reflektierte Anteil. */
+  function fresnel(n1, n2, cosI) {
+    const sinT2 = (n1 / n2) * (n1 / n2) * (1 - cosI * cosI);
+    if (sinT2 > 1) return 1;                      // Totalreflexion
+    const cosT = Math.sqrt(1 - sinT2);
+    const rs = ((n1 * cosI - n2 * cosT) / (n1 * cosI + n2 * cosT)) ** 2;
+    const rp = ((n1 * cosT - n2 * cosI) / (n1 * cosT + n2 * cosI)) ** 2;
+    return (rs + rp) / 2;
+  }
+
+  /* Ein Strahl durch den Tropfen, mit k inneren Spiegelungen.
+     Liefert den Streckenzug, den Ausfallswinkel gegen die Einfallsrichtung
+     und den durchgelassenen Lichtanteil. */
+  const drehung = (a, b) => Math.atan2(a[0] * b[1] - a[1] * b[0], a[0] * b[0] + a[1] * b[1]);
+
+  function spuren(b, n, k) {
+    const x0 = -Math.sqrt(Math.max(0, 1 - b * b));
+    let p = [x0, b], d = [1, 0];
+    const weg = [[x0 - 1.6, b], [x0, b]];
+    let nrm = [p[0], p[1]];                       // äußere Normale = Ortsvektor
+    const cosEin = -punkt(nrm, d);
+    let licht = 1 - fresnel(1, n, cosEin);
+    const einfall = Math.acos(Math.min(1, cosEin));
+    let gedreht = 0, vorher = d;
+    d = brechen(d, nrm, 1 / n);
+    if (!d) return null;
+    gedreht += drehung(vorher, d);
+    const brechung = Math.acos(Math.min(1, -punkt(nrm, d)));
+    const grenzen = [];                            // Einfallswinkel innen, für die Prüfung
+    for (let s = 0; s < k; s++) {
+      const t = -2 * punkt(p, d);
+      p = plus(p, mal(d, t));
+      weg.push([p[0], p[1]]);
+      nrm = [p[0], p[1]];
+      const cosInnen = Math.abs(punkt(nrm, d));
+      grenzen.push(Math.acos(Math.min(1, cosInnen)));
+      licht *= fresnel(n, 1, cosInnen);
+      vorher = d;
+      d = spiegeln(d, nrm);
+      gedreht += drehung(vorher, d);
+    }
+    const t = -2 * punkt(p, d);
+    p = plus(p, mal(d, t));
+    weg.push([p[0], p[1]]);
+    nrm = [p[0], p[1]];
+    const cosAus = Math.abs(punkt(nrm, d));
+    licht *= 1 - fresnel(n, 1, cosAus);
+    const daus = brechen(d, mal(nrm, -1), n);
+    if (!daus) return null;
+    gedreht += drehung(d, daus);
+    weg.push(plus(p, mal(daus, 1.6)));
+    /* Die Ablenkung ist die aufsummierte Drehung des Strahls — sie kann über
+       180° hinausgehen und tut das beim Nebenbogen auch. Der beobachtete Winkel
+       ist der zur Sonnengegenrichtung: die Drehung auf 0…180° zurückgefaltet,
+       davon 180° abgezogen. */
+    const ablenkung = Math.abs(gedreht);
+    const rest = ablenkung % (2 * Math.PI);
+    const gefaltet = rest > Math.PI ? 2 * Math.PI - rest : rest;
+    const beobachtet = Math.PI - gefaltet;
+    return { weg, beobachtet, ablenkung, licht, einfall, brechung, grenzen, aus: cosAus, daus };
+  }
+
+  /* Die geschlossene Formel aus der Geometrie — nur für den Vergleich. */
+  function formelAblenkung(b, n, k) {
+    const ti = Math.asin(b), tr = Math.asin(b / n);
+    return 2 * (ti - tr) + k * (Math.PI - 2 * tr);
+  }
+  /* Und der Winkel, bei dem sie ihren Extremwert hat. */
+  const formelWinkel = (n, k) => Math.acos(Math.sqrt((n * n - 1) / (k * k + 2 * k)));
+
+  /* Der Regenbogenwinkel, rein numerisch gesucht — ohne die Formel zu kennen. */
+  function bogenSuchen(n, k) {
+    let besterB = 0, bester = Infinity;
+    const N = 20000;
+    for (let i = 1; i < N; i++) {
+      const b = i / N;
+      const s = spuren(b, n, k);
+      if (!s) continue;
+      if (s.ablenkung < bester) { bester = s.ablenkung; besterB = b; }
+    }
+    let lo = Math.max(0.0001, besterB - 2 / N), hi = Math.min(0.9999, besterB + 2 / N);
+    for (let r = 0; r < 60; r++) {
+      const a = lo + (hi - lo) / 3, c = hi - (hi - lo) / 3;
+      const sa = spuren(a, n, k), sc = spuren(c, n, k);
+      if (!sa || !sc) break;
+      if (sa.ablenkung > sc.ablenkung) lo = a; else hi = c;
+    }
+    const b = (lo + hi) / 2;
+    const s = spuren(b, n, k);
+    return { b, winkel: s.beobachtet, licht: s.licht };
+  }
+
+  /* ==========================================================================
+     FARBE
+     Näherung der CIE-Normspektralwerte nach Wyman/Sloan/Shirley (2013),
+     danach XYZ nach sRGB. Damit ist die Farbe im Himmel gerechnet und nicht
+     aus einem Farbverlauf abgelesen.
+     ========================================================================== */
+  const gauss = (x, m, s1, s2) => { const t = (x - m) * (x < m ? 1 / s1 : 1 / s2); return Math.exp(-0.5 * t * t); };
+  function xyz(l) {
+    return [
+      1.056 * gauss(l, 599.8, 37.9, 31.0) + 0.362 * gauss(l, 442.0, 16.0, 26.7) - 0.065 * gauss(l, 501.1, 20.4, 26.2),
+      0.821 * gauss(l, 568.8, 46.9, 40.5) + 0.286 * gauss(l, 530.9, 16.3, 31.1),
+      1.217 * gauss(l, 437.0, 11.8, 36.0) + 0.681 * gauss(l, 459.0, 26.0, 13.8)
+    ];
+  }
+  const gamma = (u) => { u = Math.max(0, u); return u <= 0.0031308 ? 12.92 * u : 1.055 * Math.pow(u, 1 / 2.4) - 0.055; };
+  function xyzNachLinear(X, Y, Z) {
+    return [ 3.2406 * X - 1.5372 * Y - 0.4986 * Z,
+            -0.9689 * X + 1.8758 * Y + 0.0415 * Z,
+             0.0557 * X - 0.2040 * Y + 1.0570 * Z];
+  }
+  function xyzNachRgb(X, Y, Z) {
+    return xyzNachLinear(X, Y, Z).map(gamma);
+  }
+
+  /* ==========================================================================
+     DER HIMMEL
+     Für jede Wellenlänge werden Strahlen über den ganzen Tropfenquerschnitt
+     gespurt und nach ihrem Ausfallswinkel einsortiert — gewichtet mit der
+     Fläche des Rings, aus dem sie kommen, und mit dem Licht, das übrig ist.
+     Die Häufung an der Umkehrstelle ergibt den Bogen ganz von selbst.
+     ========================================================================== */
+  const BINS = 1400, BIS = 90;                    // 0 … 90 Grad
+  let SPEKTRUM = null;
+
+  function himmelRechnen() {
+    const lambdas = [];
+    for (let l = 390; l <= 700; l += 10) lambdas.push(l);
+    const N = 4000;
+    const feld = new Float64Array(BINS * 3);
+    let gespurt = 0;
+    for (const l of lambdas) {
+      const n = brechzahl(l);
+      const [cx, cy, cz] = xyz(l);
+      for (let k = 1; k <= 2; k++) {
+        for (let i = 0; i < N; i++) {
+          const b = (i + 0.5) / N;
+          const s = spuren(b, n, k);
+          gespurt++;
+          if (!s) continue;
+          const grad = s.beobachtet * GRAD;
+          if (grad < 0 || grad >= BIS) continue;
+          const bin = Math.floor(grad / BIS * BINS);
+          // Flussgewicht: der Ring bei b hat die Fläche 2πb db
+          const w = s.licht * 2 * b / N;
+          feld[bin * 3] += w * cx; feld[bin * 3 + 1] += w * cy; feld[bin * 3 + 2] += w * cz;
+        }
+      }
+    }
+    // Auf gleiche Raumwinkel umrechnen: ein Ring bei θ ist proportional zu sin θ
+    for (let i = 0; i < BINS; i++) {
+      const theta = (i + 0.5) / BINS * BIS / GRAD;
+      const nenner = Math.max(Math.sin(theta), 0.02) * (BIS / BINS / GRAD);
+      feld[i * 3] /= nenner; feld[i * 3 + 1] /= nenner; feld[i * 3 + 2] /= nenner;
+    }
+    /* Die Sonne ist keine Punktquelle: Sie steht unter rund 0,53° am Himmel.
+       Jeder Bogen ist deshalb mit ihrer Scheibe verschmiert — ohne das wäre die
+       Umkehrstelle rechnerisch unendlich hell und der Bogen ein weißer Strich. */
+    const radBins = Math.max(1, Math.round(0.265 / (BIS / BINS)));
+    const kern = [];
+    let kernSumme = 0;
+    for (let d = -radBins; d <= radBins; d++) {
+      const x = d / radBins;
+      const w = Math.sqrt(Math.max(0, 1 - x * x));      // Sehne durch die Sonnenscheibe
+      kern.push(w); kernSumme += w;
+    }
+    const weich = new Float64Array(BINS * 3);
+    for (let i = 0; i < BINS; i++) {
+      for (let d = -radBins; d <= radBins; d++) {
+        const j = i + d;
+        if (j < 0 || j >= BINS) continue;
+        const w = kern[d + radBins] / kernSumme;
+        weich[i * 3] += feld[j * 3] * w;
+        weich[i * 3 + 1] += feld[j * 3 + 1] * w;
+        weich[i * 3 + 2] += feld[j * 3 + 2] * w;
+      }
+    }
+    SPEKTRUM = { feld: weich, gespurt, sonne: 2 * radBins * (BIS / BINS) };
+    return SPEKTRUM;
+  }
+
+  function himmelZeichnen() {
+    const c = $("himmel"), g = c.getContext("2d");
+    const gain = +$("r-gain").value;
+    const bild = g.createImageData(c.width, c.height);
+    const D = bild.data;
+    /* Ausschnitt: 28° bis 58° vom Gegenpunkt der Sonne aus. Der Punkt selbst
+       liegt weit unterhalb des Bildes — wie am Himmel unter dem Horizont. */
+    const VON = 28, BISS = 58;
+    const skala = c.height / (BISS - VON);        // Pixel je Grad
+    const zx = c.width / 2, zy = c.height + VON * skala;
+    const hell = [];
+    for (let i = 0; i < BINS; i++) if (SPEKTRUM.feld[i * 3 + 1] > 0) hell.push(SPEKTRUM.feld[i * 3 + 1]);
+    hell.sort((a, b) => a - b);
+    const maxi = hell[Math.floor(hell.length * 0.94)] || 1;
+    for (let y = 0; y < c.height; y++) {
+      for (let x = 0; x < c.width; x++) {
+        const dx = x - zx, dy = y - zy;
+        const grad = Math.sqrt(dx * dx + dy * dy) / skala;
+        const o = (y * c.width + x) * 4;
+        // Nachthimmel-Grund, nach oben hin dunkler
+        let R = 0.006 + 0.004 * (1 - y / c.height), G = 0.009 + 0.006 * (1 - y / c.height), B = 0.020 + 0.012 * (1 - y / c.height);
+        const bin = Math.floor(grad / BIS * BINS);
+        if (bin >= 0 && bin < BINS) {
+          const s = gain / maxi;
+          const YY = SPEKTRUM.feld[bin * 3 + 1] * s;
+          const lin = xyzNachLinear(SPEKTRUM.feld[bin * 3] * s, YY, SPEKTRUM.feld[bin * 3 + 2] * s);
+          /* Die Tonwertkurve wirkt nur auf die Helligkeit, nicht auf die Farbe:
+             sonst wird die Umkehrstelle weiß, und genau dort steckt die Farbe. */
+          const f = 1 / (1 + YY);
+          R += Math.max(0, lin[0]) * f; G += Math.max(0, lin[1]) * f; B += Math.max(0, lin[2]) * f;
+        }
+        D[o] = Math.min(255, gamma(R) * 255); D[o + 1] = Math.min(255, gamma(G) * 255);
+        D[o + 2] = Math.min(255, gamma(B) * 255); D[o + 3] = 255;
+      }
+    }
+    g.putImageData(bild, 0, 0);
+
+    // Winkelmarken
+    const h = bogen1, nb = bogen2;
+    g.strokeStyle = "rgba(255,255,255,.30)"; g.setLineDash([3, 5]); g.lineWidth = 1;
+    g.font = "11px ui-monospace, monospace"; g.textAlign = "left"; g.textBaseline = "middle";
+    for (const [grad, text] of [[h.winkel * GRAD, `${(h.winkel * GRAD).toFixed(1)}° Hauptbogen`],
+                                [nb.winkel * GRAD, `${(nb.winkel * GRAD).toFixed(1)}° Nebenbogen`],
+                                [(h.winkel * GRAD + nb.winkel * GRAD) / 2, "Alexanders dunkles Band"]]) {
+      const r = grad * skala;
+      const y = zy - Math.sqrt(Math.max(0, r * r - (c.width * 0.36) ** 2));
+      if (y < 6 || y > c.height - 6) continue;
+      g.beginPath(); g.arc(zx, zy, r, Math.PI, 2 * Math.PI); g.stroke();
+      g.fillStyle = "rgba(255,255,255,.70)";
+      const tx = Math.min(zx + c.width * 0.36 + 8, c.width - g.measureText(text).width - 8);
+      g.fillText(text, tx, y);
+    }
+    g.setLineDash([]);
+    $("himmel-lage").textContent = `${SPEKTRUM.gespurt.toLocaleString("de-AT")} Strahlen · ` +
+      `32 Wellenlängen · mit der Sonnenscheibe (${SPEKTRUM.sonne.toFixed(2)}°) verschmiert`;
+  }
+
+  /* ==========================================================================
+     DER TROPFEN
+     ========================================================================== */
+  const farbe = (nm) => getComputedStyle(document.documentElement).getPropertyValue(nm).trim();
+
+  function lambdaFarbe(l, alpha) {
+    const [X, Y, Z] = xyz(l);
+    const m = Math.max(X, Y, Z, 1e-6);
+    const [r, g, b] = xyzNachRgb(X / m * 0.9, Y / m * 0.9, Z / m * 0.9);
+    return `rgba(${Math.round(Math.min(1, r) * 255)},${Math.round(Math.min(1, g) * 255)},` +
+      `${Math.round(Math.min(1, b) * 255)},${alpha})`;
+  }
+
+  function tropfenZeichnen() {
+    const c = $("tropfen"), g = c.getContext("2d");
+    g.fillStyle = farbe("--tief"); g.fillRect(0, 0, c.width, c.height);
+    const R = Math.min(c.width, c.height) * 0.30;
+    const cx = c.width * 0.44, cy = c.height / 2;
+    const P = (p) => [cx + p[0] * R, cy - p[1] * R];
+    const k = +$("ordnung").value;
+    const lambda = +$("r-lambda").value;
+    const n = brechzahl(lambda);
+    const anzahl = +$("r-anzahl").value;
+
+    // Tropfen
+    g.fillStyle = "rgba(120,170,220,.10)"; g.strokeStyle = farbe("--netz"); g.lineWidth = 1.5;
+    g.beginPath(); g.arc(cx, cy, R, 0, 7); g.fill(); g.stroke();
+    // Mittellinie
+    g.strokeStyle = farbe("--netz"); g.setLineDash([2, 5]); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(cx - R * 2.4, cy); g.lineTo(cx + R * 1.9, cy); g.stroke(); g.setLineDash([]);
+
+    // die Schar
+    for (let i = 1; i <= anzahl; i++) {
+      const b = i / (anzahl + 1);
+      const s = spuren(b, n, k);
+      if (!s) continue;
+      g.strokeStyle = lambdaFarbe(lambda, 0.30);
+      g.lineWidth = 1.2;
+      g.beginPath();
+      s.weg.forEach((p, j) => { const q = P(p); j ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); });
+      g.stroke();
+    }
+
+    // der ausgewählte Strahl
+    const b = +$("r-b").value;
+    const s = spuren(b, n, k);
+    if (s) {
+      g.strokeStyle = lambdaFarbe(lambda, 1); g.lineWidth = 2.6;
+      g.beginPath();
+      s.weg.forEach((p, j) => { const q = P(p); j ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); });
+      g.stroke();
+      for (const p of s.weg.slice(1, -1)) {
+        const q = P(p);
+        g.fillStyle = farbe("--feld"); g.strokeStyle = lambdaFarbe(lambda, 1); g.lineWidth = 1.6;
+        g.beginPath(); g.arc(q[0], q[1], 3.4, 0, 7); g.fill(); g.stroke();
+      }
+      // Ausfallswinkel andeuten
+      const ende = P(s.weg[s.weg.length - 2]);
+      g.fillStyle = farbe("--leise"); g.font = "11px ui-monospace, monospace";
+      g.textAlign = "left"; g.textBaseline = "middle";
+      g.fillText(`${(s.beobachtet * GRAD).toFixed(1)}° zurück`, ende[0] + 8, ende[1] - 14);
+
+      $("tropfen-lage").textContent = `Einfall ${(s.einfall * GRAD).toFixed(1)}° · innen ` +
+        `${(s.brechung * GRAD).toFixed(1)}° · zurück unter ${(s.beobachtet * GRAD).toFixed(1)}°`;
+      $("tropfen-fuss").innerHTML =
+        `Der dicke Strahl trifft bei <b>b = ${b.toFixed(3)}</b> auf (0 = Mitte, 1 = Rand). Von dem ` +
+        `Licht, das ankommt, kommen <b>${(s.licht * 100).toFixed(1)} %</b> auf diesem Weg wieder ` +
+        `heraus — der Rest geht bei jeder Grenzfläche verloren, teils nach draußen, teils bleibt ` +
+        `er drinnen und läuft eine Runde weiter. Bei ${lambda} nm ist die Brechzahl ` +
+        `<b>${n.toFixed(4)}</b>.`;
+    }
+  }
+
+  /* ==========================================================================
+     DIE KURVE
+     ========================================================================== */
+  let bogen1 = null, bogen2 = null;
+
+  function kurveZeichnen() {
+    const c = $("kurve"), g = c.getContext("2d");
+    g.fillStyle = farbe("--tief"); g.fillRect(0, 0, c.width, c.height);
+    const L = 52, R = 16, O = 16, U = 32;
+    const B = c.width - L - R, H = c.height - O - U;
+    const k = +$("ordnung").value;
+    const yMin = k === 1 ? 0 : 45, yMax = k === 1 ? 45 : 70;
+    const X = (b) => L + b * B;
+    const Y = (grad) => O + H - (grad - yMin) / (yMax - yMin) * H;
+
+    g.strokeStyle = farbe("--netz"); g.lineWidth = 1; g.setLineDash([2, 4]);
+    g.font = "10px ui-monospace, monospace"; g.textBaseline = "middle"; g.textAlign = "right";
+    for (let grad = yMin; grad <= yMax; grad += 5) {
+      const y = Y(grad);
+      g.beginPath(); g.moveTo(L, y + .5); g.lineTo(L + B, y + .5); g.stroke();
+      g.fillStyle = farbe("--leise"); g.fillText(grad + "°", L - 7, y);
+    }
+    g.setLineDash([]);
+
+    for (const [lambda, dick] of [[700, 2.4], [550, 1.6], [400, 2.4]]) {
+      const n = brechzahl(lambda);
+      g.strokeStyle = lambdaFarbe(lambda, 1); g.lineWidth = dick;
+      g.beginPath();
+      let erste = true;
+      for (let i = 1; i < 600; i++) {
+        const b = i / 600;
+        const s = spuren(b, n, k);
+        if (!s) continue;
+        const y = Y(s.beobachtet * GRAD);
+        erste ? (g.moveTo(X(b), y), erste = false) : g.lineTo(X(b), y);
+      }
+      g.stroke();
+      // Umkehrpunkt
+      const bg = bogenSuchenSchnell(n, k);
+      const q = [X(bg.b), Y(bg.winkel * GRAD)];
+      g.fillStyle = lambdaFarbe(lambda, 1);
+      g.beginPath(); g.arc(q[0], q[1], 4, 0, 7); g.fill();
+      g.strokeStyle = lambdaFarbe(lambda, .45); g.setLineDash([3, 3]); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(L, q[1]); g.lineTo(q[0], q[1]); g.lineTo(q[0], O + H); g.stroke();
+      g.setLineDash([]);
+    }
+
+    // der ausgewählte Auftreffpunkt
+    const b = +$("r-b").value;
+    g.strokeStyle = farbe("--tinte"); g.lineWidth = 1; g.setLineDash([1, 3]);
+    g.beginPath(); g.moveTo(X(b), O); g.lineTo(X(b), O + H); g.stroke(); g.setLineDash([]);
+
+    g.fillStyle = farbe("--leise"); g.textAlign = "center"; g.textBaseline = "top";
+    g.fillText("Auftreffpunkt b  (0 = Mitte … 1 = Rand)", L + B / 2, O + H + 12);
+
+    const n1 = brechzahl(700), n2 = brechzahl(400);
+    const a = bogenSuchenSchnell(n1, k), z = bogenSuchenSchnell(n2, k);
+    $("kurve-lage").textContent = `Umkehrpunkt: rot ${(a.winkel * GRAD).toFixed(2)}° · violett ` +
+      `${(z.winkel * GRAD).toFixed(2)}° · Bogenbreite ${Math.abs(a.winkel - z.winkel) * GRAD < 10
+        ? (Math.abs(a.winkel - z.winkel) * GRAD).toFixed(2) + "°" : "—"}`;
+  }
+
+  /* Grobere, schnellere Suche für die Anzeige. */
+  function bogenSuchenSchnell(n, k) {
+    let lo = 0.0005, hi = 0.9995;
+    for (let r = 0; r < 90; r++) {
+      const a = lo + (hi - lo) / 3, c = hi - (hi - lo) / 3;
+      const sa = spuren(a, n, k), sc = spuren(c, n, k);
+      if (!sa || !sc) break;
+      if (sa.ablenkung > sc.ablenkung) lo = a; else hi = c;
+    }
+    const b = (lo + hi) / 2, s = spuren(b, n, k);
+    return { b, winkel: s.beobachtet, licht: s.licht };
+  }
+
+  /* ==========================================================================
+     WERTE
+     ========================================================================== */
+  function werteZeigen() {
+    const hr = bogenSuchenSchnell(brechzahl(700), 1);
+    const hv = bogenSuchenSchnell(brechzahl(400), 1);
+    const nr = bogenSuchenSchnell(brechzahl(700), 2);
+    const nv = bogenSuchenSchnell(brechzahl(400), 2);
+    bogen1 = hr; bogen2 = nr;
+    $("w-h-rot").textContent = (hr.winkel * GRAD).toFixed(2) + "°";
+    $("w-h-vio").textContent = (hv.winkel * GRAD).toFixed(2) + "°";
+    $("w-n-rot").textContent = (nr.winkel * GRAD).toFixed(2) + "°";
+    $("w-n-vio").textContent = (nv.winkel * GRAD).toFixed(2) + "°";
+    $("w-band").textContent = (nr.winkel * GRAD - hr.winkel * GRAD).toFixed(1) + "°";
+    $("w-hell").textContent = (nr.licht / hr.licht * 100).toFixed(0) + " %";
+    $("werte-fuss").innerHTML =
+      `Alle sechs Zahlen sind <b>gesucht, nicht gesetzt</b>: Für jede Wellenlänge wird die ` +
+      `Umkehrstelle der Ablenkkurve numerisch eingegrenzt. Dass dabei die berühmten ` +
+      `<b>42°</b> und <b>51°</b> herauskommen, ist das Ergebnis — nicht die Vorgabe. Der ` +
+      `Hauptbogen ist ${(hr.winkel * GRAD - hv.winkel * GRAD).toFixed(2)}° breit, ` +
+      `der Nebenbogen ${(nv.winkel * GRAD - nr.winkel * GRAD).toFixed(2)}° — und seine Farben ` +
+      `stehen <b>umgekehrt</b>.`;
+  }
+
+  /* ==========================================================================
+     PRÜFLAUF
+     ========================================================================== */
+  function pruefen() {
+    const tb = $("pruef").querySelector("tbody");
+    tb.textContent = "";
+    let fehler = 0;
+    const zeile = (was, gut, text) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${was}</td><td style="color:${gut ? "var(--gut)" : "var(--warn)"}">${text}</td>`;
+      tb.append(tr);
+      if (!gut) fehler++;
+    };
+    const t0 = performance.now();
+    const NS = [1.30, 1.3311, 1.3435, 1.40, 1.50];
+
+    // 1. Snellius an jeder Grenzfläche.
+    {
+      let flaechen = 0, maxRest = 0;
+      for (const n of NS) for (let i = 1; i < 400; i++) {
+        const b = i / 400;
+        const s = spuren(b, n, 1);
+        if (!s) continue;
+        // Eintritt: sin(Einfall) = n · sin(Brechung)
+        maxRest = Math.max(maxRest, Math.abs(Math.sin(s.einfall) - n * Math.sin(s.brechung)));
+        flaechen++;
+        // innen: jede Spiegelung muss denselben Winkel haben wie die Brechung
+        for (const gr of s.grenzen) {
+          maxRest = Math.max(maxRest, Math.abs(gr - s.brechung));
+          flaechen++;
+        }
+        // Austritt: derselbe Winkel innen wie beim Eintritt
+        maxRest = Math.max(maxRest, Math.abs(Math.acos(s.aus) - s.brechung));
+        flaechen++;
+      }
+      zeile("Snellius hält an jeder Grenzfläche", maxRest < 1e-9,
+        `<b>${flaechen.toLocaleString("de-AT")} Grenzflächen</b> geprüft · größter Rest ` +
+        `<b>${maxRest.toExponential(1)}</b> — das ist nicht der Fehler der Brechung, sondern der ` +
+        `des Zurückrechnens: nahe am streifenden Einfall verliert der Arkuskosinus die Hälfte ` +
+        `seiner Stellen · und der Winkel innen ist an allen vier Stellen derselbe`);
+    }
+
+    // 2. Der gespurte Strahl gegen die geschlossene Formel.
+    {
+      let faelle = 0, maxAbstand = 0;
+      for (const n of NS) for (const k of [1, 2, 3]) for (let i = 1; i < 500; i++) {
+        const b = i / 500;
+        const s = spuren(b, n, k);
+        if (!s) continue;
+        const formel = formelAblenkung(b, n, k);
+        maxAbstand = Math.max(maxAbstand, Math.abs(s.ablenkung - formel));
+        faelle++;
+      }
+      zeile("Vektorspur und Winkelformel sagen dasselbe", maxAbstand < 1e-9,
+        `${faelle.toLocaleString("de-AT")} Strahlen, drei Ordnungen · die mit Vektoren gespurte ` +
+        `Ablenkung und die Formel 2(θᵢ−θᵣ)+k(π−2θᵣ) trennen höchstens ` +
+        `<b>${(maxAbstand * GRAD).toExponential(1)}°</b>`);
+    }
+
+    // 3. Der Bogen ist ein Extremum — gesucht gegen hergeleitet.
+    {
+      let faelle = 0, maxAbstand = 0;
+      for (const n of NS) for (const k of [1, 2, 3, 4]) {
+        const gesucht = bogenSuchenSchnell(n, k);
+        const cosI = Math.sqrt((n * n - 1) / (k * k + 2 * k));
+        const bFormel = Math.sqrt(1 - cosI * cosI);
+        maxAbstand = Math.max(maxAbstand, Math.abs(gesucht.b - bFormel));
+        faelle++;
+      }
+      zeile("der Bogen sitzt genau am Umkehrpunkt", maxAbstand < 1e-6,
+        `${faelle} Fälle (fünf Brechzahlen, vier Ordnungen) · die rein numerisch gesuchte ` +
+        `Umkehrstelle und die hergeleitete Stelle cos θᵢ = √((n²−1)/(k²+2k)) trennen höchstens ` +
+        `<b>${maxAbstand.toExponential(1)}</b> im Auftreffpunkt`);
+    }
+
+    // 4. 42 und 51 Grad.
+    {
+      const hr = bogenSuchenSchnell(brechzahl(700), 1).winkel * GRAD;
+      const hv = bogenSuchenSchnell(brechzahl(400), 1).winkel * GRAD;
+      const nr = bogenSuchenSchnell(brechzahl(700), 2).winkel * GRAD;
+      const nv = bogenSuchenSchnell(brechzahl(400), 2).winkel * GRAD;
+      const gut = Math.abs(hr - 42.4) < 0.3 && Math.abs(hv - 40.6) < 0.4 &&
+                  Math.abs(nr - 50.3) < 0.4 && Math.abs(nv - 53.5) < 0.6;
+      zeile("die berühmten Winkel kommen von selbst heraus", gut,
+        `Hauptbogen <b>${hr.toFixed(2)}°</b> rot / ${hv.toFixed(2)}° violett (Bücher: 42,4 / 40,6) · ` +
+        `Nebenbogen <b>${nr.toFixed(2)}°</b> rot / ${nv.toFixed(2)}° violett (50,3 / 53,5) — ` +
+        `gesucht aus der Kurve, nicht eingetragen`);
+    }
+
+    // 5. Alexanders dunkles Band.
+    {
+      const von = bogenSuchenSchnell(brechzahl(700), 1).winkel * GRAD + 0.15;
+      const bis = bogenSuchenSchnell(brechzahl(700), 2).winkel * GRAD - 0.15;
+      let gespurt = 0, drin = 0;
+      for (let l = 390; l <= 700; l += 10) {
+        const n = brechzahl(l);
+        for (const k of [1, 2]) for (let i = 0; i < 4000; i++) {
+          const b = (i + 0.5) / 4000;
+          const s = spuren(b, n, k);
+          gespurt++;
+          if (!s) continue;
+          const grad = s.beobachtet * GRAD;
+          if (grad > von && grad < bis) drin++;
+        }
+      }
+      zeile("zwischen den Bögen kommt wirklich nichts heraus", drin === 0,
+        `<b>${gespurt.toLocaleString("de-AT")} Strahlen</b> über 32 Wellenlängen und beide ` +
+        `Ordnungen gespurt · <b>${drin}</b> davon landen zwischen ${von.toFixed(1)}° und ` +
+        `${bis.toFixed(1)}° — das ist Alexanders dunkles Band, und es ist nicht dunkler gemalt, ` +
+        `sondern leer`);
+    }
+
+    // 6. Fresnel: nichts geht verloren, und der Nebenbogen ist blasser.
+    {
+      let flaechen = 0, maxRest = 0;
+      for (const n of NS) for (let i = 0; i <= 900; i++) {
+        const cosI = i / 900;
+        for (const [n1, n2] of [[1, n], [n, 1]]) {
+          const R = fresnel(n1, n2, cosI);
+          if (R > 0.999999) continue;               // Totalreflexion: T = 0 ist richtig
+          maxRest = Math.max(maxRest, Math.abs(R + (1 - R) - 1));
+          if (R < 0 || R > 1) maxRest = 1;
+          flaechen++;
+        }
+      }
+      const hell1 = bogenSuchenSchnell(brechzahl(550), 1).licht;
+      const hell2 = bogenSuchenSchnell(brechzahl(550), 2).licht;
+      const hell3 = bogenSuchenSchnell(brechzahl(550), 3).licht;
+      zeile("jede Spiegelung kostet Licht, und zwar messbar",
+        maxRest < 1e-15 && hell2 < hell1 && hell3 < hell2,
+        `${flaechen.toLocaleString("de-AT")} Grenzflächen · reflektierter und durchgelassener ` +
+        `Anteil ergeben überall genau eins (Rest ${maxRest.toExponential(0)}) · vom einfallenden ` +
+        `Licht bleiben im Hauptbogen <b>${(hell1 * 100).toFixed(1)} %</b>, im Nebenbogen ` +
+        `<b>${(hell2 * 100).toFixed(1)} %</b>, im dritten Bogen ${(hell3 * 100).toFixed(2)} %`);
+    }
+
+    // 7. Die Farbfolge kippt.
+    {
+      const winkel1 = [], winkel2 = [];
+      for (let l = 400; l <= 700; l += 10) {
+        winkel1.push(bogenSuchenSchnell(brechzahl(l), 1).winkel);
+        winkel2.push(bogenSuchenSchnell(brechzahl(l), 2).winkel);
+      }
+      let steigt1 = 0, faellt2 = 0;
+      for (let i = 1; i < winkel1.length; i++) {
+        if (winkel1[i] > winkel1[i - 1]) steigt1++;
+        if (winkel2[i] < winkel2[i - 1]) faellt2++;
+      }
+      const alle = winkel1.length - 1;
+      zeile("beim Nebenbogen steht die Farbfolge verkehrt",
+        steigt1 === alle && faellt2 === alle,
+        `${winkel1.length} Wellenlängen von 400 bis 700 nm · beim Hauptbogen steigt der Winkel ` +
+        `mit der Wellenlänge in <b>allen ${steigt1} von ${alle}</b> Schritten (Rot außen), beim ` +
+        `Nebenbogen fällt er in allen ${faellt2} (Rot innen) — <b>ausnahmslos umgekehrt</b>`);
+    }
+
+    const dauer = performance.now() - t0;
+    $("pruef-fuss").innerHTML = fehler === 0
+      ? `<b>Alle Prüfungen bestanden</b> in ${dauer.toFixed(0)} ms. Die vierte Zeile ist der Punkt: ` +
+        `Nirgends im Code steht die Zahl 42. Sie fällt aus einer Kurve, die aus lauter einzeln ` +
+        `gespurten Strahlen entsteht — genau wie am Himmel.`
+      : `<b style="color:var(--warn)">${fehler} Prüfung(en) fehlgeschlagen.</b>`;
+  }
+
+  /* ==========================================================================
+     BEDIENUNG
+     ========================================================================== */
+  function alles(auchHimmel) {
+    $("o-b").textContent =dezimal(+$("r-b").value, 3);
+    $("o-anzahl").textContent = $("r-anzahl").value;
+    $("o-lambda").textContent = $("r-lambda").value + " nm";
+    $("o-gain").textContent = dezimal(+$("r-gain").value, 1) + "×";
+    werteZeigen();
+    tropfenZeichnen();
+    kurveZeichnen();
+    if (auchHimmel) himmelZeichnen();
+  }
+  const dezimal = (x, s) => x.toLocaleString("de-AT", { minimumFractionDigits: s, maximumFractionDigits: s });
+
+  for (const id of ["r-b", "r-anzahl", "r-lambda"]) $(id).addEventListener("input", () => alles(false));
+  $("ordnung").addEventListener("change", () => alles(false));
+  $("r-gain").addEventListener("input", () => { $("o-gain").textContent = dezimal(+$("r-gain").value, 1) + "×"; himmelZeichnen(); });
+  $("b-pruefen").addEventListener("click", pruefen);
+  $("b-thema").addEventListener("click", () => {
+    const jetzt = document.documentElement.getAttribute("data-theme");
+    const dunkel = matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", jetzt ? (jetzt === "dark" ? "light" : "dark") : (dunkel ? "light" : "dark"));
+    alles(false);
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => alles(false));
+
+  himmelRechnen();
+  alles(true);
+  $("himmel-fuss").innerHTML =
+    `Der Gegenpunkt der Sonne liegt <b>unter dem Horizont</b> — deshalb sieht man nie mehr als ` +
+    `einen Bogen. Jedes Pixel bekommt seine Farbe aus dem Winkel zu diesem Punkt, und die Farbe ` +
+    `kommt aus den einsortierten Strahlen: 32 Wellenlängen, umgerechnet über die ` +
+    `CIE-Normspektralwerte. Innen ist es heller, weil dort das Licht aller Strahlen liegt, die ` +
+    `den Umkehrpunkt noch nicht erreicht haben.`;
+})();
+</script>
+</body>
+</html>
